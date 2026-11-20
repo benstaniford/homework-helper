@@ -51,3 +51,22 @@ def test_homework_overdue_flag():
     })
     assert hw.is_overdue is True
     assert hw.source == "todo"
+
+
+def test_submitted_uses_own_submission_not_classmates():
+    # Live quirk: has_submitted_submissions is true once ANY student submits.
+    a = Assignment.from_api({"id": 1, "course_id": 2, "name": "BUILD", "due_at": None,
+                             "has_submitted_submissions": True,
+                             "submission": {"workflow_state": "unsubmitted", "submitted_at": None}})
+    assert a.has_submitted is False
+
+
+def test_submitted_states():
+    def done(sub):
+        return Assignment.from_api({"id": 1, "course_id": 2, "submission": sub}).has_submitted
+    assert done({"workflow_state": "submitted"}) is True
+    assert done({"workflow_state": "graded", "submitted_at": "2026-11-01T10:00:00Z"}) is True
+    assert done({"workflow_state": "unsubmitted", "excused": True}) is True
+    assert done([{"workflow_state": "graded"}]) is True   # include[]=observed_users shape
+    assert done({"workflow_state": "unsubmitted"}) is False
+    assert Assignment.from_api({"id": 1, "course_id": 2}).has_submitted is False  # no submission info

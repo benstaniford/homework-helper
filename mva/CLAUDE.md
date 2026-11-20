@@ -10,7 +10,18 @@ standard Canvas REST API — no HTML scraping.
 
 ## Commands
 
-The venv lives at `.venv/` and is Windows-layout, so use `.venv/Scripts/python`:
+The venv lives at `.venv/`. Its layout depends on the OS that created it: on
+Windows use `.venv/Scripts/python` (as below); on Linux/macOS use
+`.venv/bin/python` instead. Check which exists before running anything. Linux setup:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt -e .
+.venv/bin/python -m pytest -m "not live"
+.venv/bin/python examples/due_this_week.py   # prompts for creds; lists unsubmitted work due in 7 days
+```
+
+Windows commands:
 
 ```bash
 # Setup
@@ -25,8 +36,9 @@ python -m venv .venv
 # Live read-only smoke tests against the real instance (needs credentials, see below):
 .venv/Scripts/python -m pytest -m live
 
-# Run the example:
+# Run the examples:
 .venv/Scripts/python examples/show_homework.py
+.venv/Scripts/python examples/due_this_week.py    # prompts for creds; --days N to change window
 ```
 
 There is no linter or type-checker configured; `pytest` is the only check.
@@ -91,6 +103,10 @@ real MVA data and mirrored in the test fixtures:
    `type == 'Assignment'` and `content_id == assignment.id`.
    `get_materials_for_homework()` uses that link to find the containing module and
    returns its items; `ModuleItem.is_material` filters out `SubHeader` layout items.
+3. **`has_submitted_submissions` is course-wide, not per-student.** It turns true
+   once *any* student submits, so it must not be used for "has this student done
+   it". `get_assignments()` fetches with `include[]=submission` and
+   `models.own_submission_done()` reads the student's own `submission` instead.
 
 ## Tests
 

@@ -26,6 +26,31 @@ def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+_SUBMITTED_STATES = ("submitted", "graded", "pending_review", "complete")
+
+
+def own_submission_done(assignment: dict) -> bool:
+    """
+    Whether *this* student has submitted (or been excused from) an assignment.
+
+    Reads the student's own ``submission`` (present when the assignment was
+    fetched with ``include[]=submission``; a one-element list if
+    ``observed_users`` was also included). Deliberately ignores
+    ``has_submitted_submissions``: that is true once *any* student in the
+    course has submitted, so it hides work the student still has to do.
+    """
+    sub = assignment.get("submission")
+    if isinstance(sub, list):
+        sub = sub[0] if sub else None
+    if not isinstance(sub, dict):
+        return False
+    return bool(
+        sub.get("excused")
+        or sub.get("submitted_at")
+        or sub.get("workflow_state") in _SUBMITTED_STATES
+    )
+
+
 @dataclass
 class User:
     id: int
@@ -86,7 +111,7 @@ class Assignment:
             html_url=d.get("html_url", ""),
             points_possible=d.get("points_possible"),
             submission_types=list(d.get("submission_types", [])),
-            has_submitted=bool(d.get("has_submitted_submissions", False)),
+            has_submitted=own_submission_done(d),
             workflow_state=d.get("workflow_state", ""),
             description_html=d.get("description") or "",
             raw=d,
@@ -195,7 +220,7 @@ class Homework:
             assignment_id=a.get("id"),
             due_at=parse_dt(a.get("due_at")),
             html_url=d.get("html_url") or a.get("html_url", ""),
-            submitted=bool(a.get("has_submitted_submissions", False)),
+            submitted=own_submission_done(a),
             source="todo",
             raw=d,
         )

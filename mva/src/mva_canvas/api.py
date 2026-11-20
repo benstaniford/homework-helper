@@ -138,7 +138,7 @@ class MvaCanvas:
     def get_assignments(self, course_id: int) -> list[Assignment]:
         raw = self.client.get_paginated(
             f"/courses/{course_id}/assignments",
-            params={"order_by": "due_at"},
+            params={"order_by": "due_at", "include[]": "submission"},
         )
         return [Assignment.from_api(a) for a in raw]
 

@@ -48,6 +48,7 @@ TODO = [
 ]
 
 # Biology assignments: a FUTURE dated one, a null-dated practice task, a past SUBMITTED one.
+# Fetched with include[]=submission, so each carries the student's own `submission`.
 ASSIGNMENTS_3517 = [
     {
         "id": 400001,
@@ -57,6 +58,7 @@ ASSIGNMENTS_3517 = [
         "html_url": "https://canvas.test/courses/3517/assignments/400001",
         "submission_types": ["online_upload"],
         "has_submitted_submissions": False,
+        "submission": {"user_id": 8101, "workflow_state": "unsubmitted", "submitted_at": None, "excused": None},
         "workflow_state": "published",
         "points_possible": 10.0,
     },
@@ -67,7 +69,9 @@ ASSIGNMENTS_3517 = [
         "due_at": None,
         "html_url": "https://canvas.test/courses/3517/assignments/400002",
         "submission_types": ["online_text_entry"],
-        "has_submitted_submissions": False,
+        # Live quirk: true because classmates submitted; Ollie's own submission is not.
+        "has_submitted_submissions": True,
+        "submission": {"user_id": 8101, "workflow_state": "unsubmitted", "submitted_at": None, "excused": None},
         "workflow_state": "published",
     },
     {
@@ -78,6 +82,7 @@ ASSIGNMENTS_3517 = [
         "html_url": "https://canvas.test/courses/3517/assignments/312378",
         "submission_types": ["online_upload"],
         "has_submitted_submissions": False,
+        "submission": {"user_id": 8101, "workflow_state": "unsubmitted", "submitted_at": None, "excused": None},
         "workflow_state": "published",
     },
     {
@@ -88,6 +93,7 @@ ASSIGNMENTS_3517 = [
         "html_url": "https://canvas.test/courses/3517/assignments/399000",
         "submission_types": ["online_upload"],
         "has_submitted_submissions": True,
+        "submission": {"user_id": 8101, "workflow_state": "submitted", "submitted_at": "2026-09-15T18:00:00Z", "excused": None},
         "workflow_state": "published",
     },
 ]
@@ -101,6 +107,7 @@ ASSIGNMENTS_2799 = [
         "html_url": "https://canvas.test/courses/2799/assignments/500001",
         "submission_types": ["online_quiz"],
         "has_submitted_submissions": False,
+        "submission": {"user_id": 8101, "workflow_state": "unsubmitted", "submitted_at": None, "excused": None},
         "workflow_state": "published",
     },
 ]
