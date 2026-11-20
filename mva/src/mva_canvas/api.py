@@ -34,6 +34,7 @@ from .models import (
     User,
     now_utc,
 )
+from .login import login_with_credentials
 from .session import requests_session_from_cookies
 
 DEFAULT_BASE_URL = "https://minervavirtual.instructure.com"
@@ -52,10 +53,11 @@ class MvaCanvas:
         """
         Build from the environment / a .env file.
 
-        Prefers a personal access token (CANVAS_TOKEN) if present; otherwise falls
-        back to cookie-based session auth (CANVAS_COOKIES, default
-        ``.pw-session/cookies.json``) — needed on instances like MVA that disable
-        token generation.
+        Tries, in order: a personal access token (CANVAS_TOKEN); a username and
+        password (CANVAS_USERNAME + CANVAS_PASSWORD), which logs in afresh; then
+        an exported cookie file (CANVAS_COOKIES, default
+        ``.pw-session/cookies.json``). MVA disables tokens, so one of the last
+        two is needed there.
         """
         load_dotenv(dotenv_path)
         base_url = os.environ.get("CANVAS_BASE_URL", DEFAULT_BASE_URL)
@@ -63,13 +65,18 @@ class MvaCanvas:
         if token:
             return cls(token=token, base_url=base_url)
 
+        username = os.environ.get("CANVAS_USERNAME")
+        password = os.environ.get("CANVAS_PASSWORD")
+        if username and password:
+            return cls.from_credentials(username, password, base_url=base_url)
+
         cookies_path = os.environ.get("CANVAS_COOKIES", DEFAULT_COOKIES_PATH)
         if os.path.exists(cookies_path):
             return cls.from_session(cookies_path=cookies_path, base_url=base_url)
 
         raise RuntimeError(
-            "No credentials found. Set CANVAS_TOKEN in .env, or create a session "
-            "cookies file via tools/capture_login.py + tools/export_session.py "
+            "No credentials found. Set CANVAS_TOKEN or CANVAS_USERNAME + "
+            "CANVAS_PASSWORD in .env, or create a session cookies file via tools/capture_login.py + tools/export_session.py "
             f"(expected at {cookies_path})."
         )
 
@@ -81,6 +88,22 @@ class MvaCanvas:
     ) -> "MvaCanvas":
         """Build using exported browser-login cookies (no access token needed)."""
         sess = requests_session_from_cookies(cookies_path)
+        client = CanvasClient(base_url=base_url, session=sess)
+        return cls(token=None, base_url=base_url, client=client)
+
+    @classmethod
+    def from_credentials(
+        cls,
+        username: str,
+        password: str,
+        base_url: str = DEFAULT_BASE_URL,
+    ) -> "MvaCanvas":
+        """
+        Log in with a Canvas username and password (the ``/login/canvas`` form)
+        and build on the resulting cookie session. Raises ``CanvasAuthError`` if
+        the login is rejected or needs a second factor.
+        """
+        sess = login_with_credentials(username, password, base_url=base_url)
         client = CanvasClient(base_url=base_url, session=sess)
         return cls(token=None, base_url=base_url, client=client)
 

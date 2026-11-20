@@ -42,6 +42,8 @@ cp .env.example .env        # then paste your token into CANVAS_TOKEN
 from mva_canvas import MvaCanvas
 
 api = MvaCanvas.from_env()            # reads CANVAS_TOKEN / CANVAS_BASE_URL from .env
+# or log in with a username and password (no SSO/2FA):
+# api = MvaCanvas.from_credentials("student-username", "password")
 
 print(api.get_self().name)
 

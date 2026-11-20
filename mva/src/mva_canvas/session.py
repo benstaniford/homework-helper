@@ -23,6 +23,18 @@ PathLike = Union[str, pathlib.Path]
 AUTH_COOKIE_NAMES = {"canvas_session", "_csrf_token", "log_session_id"}
 
 
+def new_browser_session() -> requests.Session:
+    """An empty requests.Session with the browser-like headers Canvas expects."""
+    sess = requests.Session()
+    sess.headers.update(
+        {
+            "User-Agent": "Mozilla/5.0 (mva-canvas session client)",
+            "Accept": "application/json+canvas-string-ids, application/json",
+        }
+    )
+    return sess
+
+
 def load_cookies(cookies_path: PathLike) -> list[dict]:
     """Load the Playwright-exported cookie list from JSON."""
     path = pathlib.Path(cookies_path)
@@ -42,13 +54,7 @@ def requests_session_from_cookies(cookies_path: PathLike) -> requests.Session:
     browser-like User-Agent (some instances are picky about missing UAs).
     """
     cookies = load_cookies(cookies_path)
-    sess = requests.Session()
-    sess.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (mva-canvas session client)",
-            "Accept": "application/json+canvas-string-ids, application/json",
-        }
-    )
+    sess = new_browser_session()
     for c in cookies:
         name = c.get("name")
         if not name:

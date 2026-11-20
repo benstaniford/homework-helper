@@ -43,7 +43,15 @@ Note: the top of `README.md` still describes the token happy-path; `.env.example
 `src/mva_canvas/session.py`, and the `tools/` scripts reflect the real cookie-based
 flow. Trust the code and `.env.example` over the README prose here.
 
-To (re)create the session when the API starts returning 401/403:
+`from_env()` also accepts `CANVAS_USERNAME` + `CANVAS_PASSWORD` (checked after the
+token, before the cookies file). `MvaCanvas.from_credentials(username, password)`
+(`src/mva_canvas/login.py`) logs in through the `/login/canvas` form with plain
+`requests`: it reads the form's `authenticity_token`, posts the credentials, treats a
+redirect away from `/login` as success, then checks `/api/v1/users/self`. Wrong
+passwords and two-factor prompts raise `CanvasAuthError`; it cannot handle SSO, 2FA
+or a CAPTCHA.
+
+To (re)create the browser cookie session when the API starts returning 401/403:
 
 ```bash
 .venv/Scripts/python tools/capture_login.py    # headed Firefox; log in by hand
@@ -65,7 +73,8 @@ Three layers, each a file in `src/mva_canvas/`:
   the unified "thing to do" object, built either `from_todo` or `from_assignment`.
 - **`api.py` — `MvaCanvas`**: the high-level surface the app consumes; the only layer
   that encodes domain logic. `session.py` builds a cookie `requests.Session` from an
-  exported Playwright cookie file.
+  exported Playwright cookie file; `login.py` builds one by logging in with a
+  username and password.
 
 ### Two domain quirks the logic exists to handle
 
