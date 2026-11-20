@@ -1,0 +1,20 @@
+# Secrets & credentials
+.env
+.env.local
+
+# Saved browser login session (contains live Canvas cookies = credentials)
+.pw-profile/
+.pw-session/
+
+# Captured personal data (your son's course data, screenshots, probe dumps)
+capture/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
