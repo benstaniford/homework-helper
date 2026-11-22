@@ -35,6 +35,9 @@ _fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()
 
 cache = SessionCache()
 
+SAVED_LOGIN_REJECTED = ("MVA didn't accept your saved login. Try refreshing; if your MVA password "
+                        "has changed, log out and sign in again.")
+
 # The homework helper chat. It's on when the claude-broker folder is mounted at
 # BROKER_DIR (see README). tutor.start() serves its tools: gunicorn calls it after
 # forking (gunicorn.conf.py), and the dev server calls it below.
@@ -132,10 +135,10 @@ def index():
     try:
         report = cache.report(username, password, refresh=bool(request.args.get('refresh')))
     except CanvasAuthError:
-        # Stored password no longer works (e.g. it was changed on MVA).
+        # Keep the saved login: MVA also refuses logins while it's down or under
+        # maintenance. Only Logout removes it, so a changed password is fixed there.
         cache.forget(username)
-        session.clear()
-        return render_template('login.html', error='Your MVA login has stopped working. Please sign in again.')
+        return render_template('index.html', report=None, error=SAVED_LOGIN_REJECTED), 502
     except (CanvasError, OSError) as e:
         logger.warning("Fetching homework failed: %s", e)
         return render_template('index.html', report=None, error='Could not load homework from MVA. Try refreshing.'), 502
@@ -168,7 +171,8 @@ def ask():
     except TutorError as e:
         return jsonify({'error': str(e)}), e.status
     except CanvasAuthError:
-        return jsonify({'error': 'Your MVA login has stopped working. Please sign in again.'}), 401
+        cache.forget(username)
+        return jsonify({'error': SAVED_LOGIN_REJECTED}), 502
     except (CanvasError, OSError) as e:
         logger.warning("Opening a chat failed: %s", e)
         return jsonify({'error': 'Could not load homework from MVA. Try again.'}), 502

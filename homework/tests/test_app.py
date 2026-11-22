@@ -197,11 +197,17 @@ def test_report_is_cached():
 # -- Flask routes ---------------------------------------------------------------
 
 @pytest.fixture
-def client(monkeypatch):
+def mva():
+    """What the fake MVA accepts; tests change .password to simulate a rejection."""
+    return SimpleNamespace(password="right")
+
+
+@pytest.fixture
+def client(monkeypatch, mva):
     fake = make_fake()
 
     def login(u, p):
-        if p != "right":
+        if p != mva.password:
             raise CanvasAuthError("bad")
         return fake
 
@@ -254,3 +260,17 @@ def test_logout(client):
     client.post("/login", data={"username": "kid", "password": "right"})
     client.get("/logout")
     assert client.get("/").status_code == 302
+
+
+def test_auth_failure_keeps_saved_login(client, mva):
+    client.post("/login", data={"username": "kid", "password": "right"})
+    mva.password = "changed"  # MVA now refuses the saved password
+    app_module.cache.forget("kid")  # as after a restart: the next request logs in to MVA
+    r = client.get("/?refresh=1")
+    assert r.status_code == 502
+    assert "saved login" in r.data.decode()
+
+    mva.password = "right"  # MVA accepts it again: still logged in
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Test Student" in r.data.decode()
