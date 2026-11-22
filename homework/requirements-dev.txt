@@ -1,0 +1,3 @@
+-r requirements.txt
+-e ../mva
+pytest>=8.0

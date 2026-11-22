@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -36,6 +37,8 @@ from .models import (
 )
 from .login import login_with_credentials
 from .session import requests_session_from_cookies
+
+LOCAL_TZ = ZoneInfo(os.environ.get("TZ") or "Europe/London")
 
 DEFAULT_BASE_URL = "https://minervavirtual.instructure.com"
 DEFAULT_COOKIES_PATH = ".pw-session/cookies.json"
@@ -195,14 +198,25 @@ class MvaCanvas:
 
     def get_current_module(self, course_id: int) -> Optional[Module]:
         """
-        Best guess at the week the student is currently working through: the
-        highest-positioned module that is unlocked (state 'started'/'unlocked') and
-        already past its unlock date. Falls back to the last module.
+        Best guess at the week the student is currently working through.
+
+        MVA module names say which week they are for ("... (w/c 16th November)"), so
+        the module whose week started most recently, on or before today, wins. Canvas'
+        own state is no use for this: a module stays 'started' until every item in it
+        is done, so an old week with one unfinished task looks just as current.
+        Only when no module names a past week does this fall back to the
+        highest-positioned module that is unlocked, then to the last module.
         """
         modules = self.get_modules(course_id, with_items=False)
         if not modules:
             return None
         now = now_utc()
+        today = now.astimezone(LOCAL_TZ).date()
+        dated = [(m.week_start(today), m) for m in modules]
+        dated = [(d, m) for d, m in dated if d is not None and d <= today]
+        if dated:
+            chosen = max(dated, key=lambda dm: (dm[0], dm[1].position))[1]
+            return self._module_with_items(course_id, chosen.id) or chosen
 
         def available(m: Module) -> bool:
             if m.state in ("completed", "started", "unlocked"):

@@ -1,0 +1,15 @@
+services:
+  homework:
+    build:
+      context: ..
+      dockerfile: homework/Dockerfile
+    image: homework:latest
+    container_name: homework
+    ports:
+      - "${HOST_PORT:-5050}:5000"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=production
+      - TZ=${TZ:-Europe/London}

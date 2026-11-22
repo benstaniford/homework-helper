@@ -7,8 +7,9 @@ MVA app actually needs are promoted to attributes.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 
@@ -157,6 +158,74 @@ class ModuleItem:
         """SubHeaders are layout only; everything else is a real material/task."""
         return self.type != "SubHeader"
 
+    @property
+    def completion_type(self) -> str:
+        """Canvas' requirement for ticking this item off ('must_view', 'must_mark_done',
+        'must_submit', ...), or '' when the item has none (plain reference material)."""
+        req = self.raw.get("completion_requirement") or {}
+        return req.get("type", "")
+
+    @property
+    def is_todo(self) -> bool:
+        """True for an item the student still has to do: it has a completion
+        requirement (the circle in the Canvas module view) that isn't ticked yet."""
+        req = self.raw.get("completion_requirement") or {}
+        return bool(req) and not req.get("completed", False)
+
+
+_MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july",
+                "august", "september", "october", "november", "december"]
+_MONTH = r"([a-z]{3,9})"
+_DAY = r"(\d{1,2})(?:st|nd|rd|th)?"
+# A date in a module name: "16th November", "16 of Nov", "7th Sept", or month-first
+# "October 5". Years are ignored (see parse_week_start).
+_DAY_MONTH = re.compile(r"\b" + _DAY + r"\s+(?:of\s+)?" + _MONTH + r"\b", re.I)
+_MONTH_DAY = re.compile(r"\b" + _MONTH + r"\s+" + _DAY + r"\b", re.I)
+# Numeric dates only after "w/c" / "w/b" / "week commencing", so "Weeks 1-2" isn't one.
+_WC_NUM = re.compile(r"(?:\bw\.?\s*/?\s*[cb]\.?|\bweek\s+(?:commencing|beginning))\s*:?\s*"
+                     r"(?:[a-z]+day\s+)?(\d{1,2})[/.-](\d{1,2})", re.I)
+
+
+def _month(word: str) -> Optional[int]:
+    """'Nov', 'Sept', 'November' -> 11; 'Decimal', 'Marking' -> None."""
+    w = word.lower()
+    for i, name in enumerate(_MONTH_NAMES, start=1):
+        if len(w) >= 3 and (name.startswith(w) or (w == "sept" and i == 9)):
+            return i
+    return None
+
+
+def parse_week_start(name: str, today: date) -> Optional[date]:
+    """
+    The week a module is for, from the date in its name: MVA teachers write
+    "(w/c 16th November)", "(Mon 16th Nov 2026)", "- 16th Nov", "Monday October 5 2026",
+    "w/c 16/11" and so on. If a name has several dates the last one wins (one module
+    reads "Weeks 7-8 (Mon 19th Nov) ... (Mon 2 Nov 2026)"). Any year written is ignored
+    because some are wrong ("5th October 2025" in the 2026 term); the year used is the
+    one putting the date closest to today.
+    """
+    found: list[tuple[int, int, int]] = []  # (position in name, day, month)
+    for m in _DAY_MONTH.finditer(name):
+        month = _month(m.group(2))
+        if month:
+            found.append((m.start(), int(m.group(1)), month))
+    for m in _MONTH_DAY.finditer(name):
+        month = _month(m.group(1))
+        if month:
+            found.append((m.start(), int(m.group(2)), month))
+    for m in _WC_NUM.finditer(name):
+        found.append((m.start(), int(m.group(1)), int(m.group(2))))
+    for _, day, month in sorted(found, reverse=True):
+        options = []
+        for y in (today.year - 1, today.year, today.year + 1):
+            try:
+                options.append(date(y, month, day))
+            except ValueError:
+                pass
+        if options:
+            return min(options, key=lambda d: abs((d - today).days))
+    return None
+
 
 @dataclass
 class Module:
@@ -181,6 +250,10 @@ class Module:
             items=[ModuleItem.from_api(i) for i in d.get("items", [])],
             raw=d,
         )
+
+    def week_start(self, today: date) -> Optional[date]:
+        """The week this module is for, from the date in its name, or None."""
+        return parse_week_start(self.name, today)
 
     def assignment_item(self, assignment_id: int) -> Optional[ModuleItem]:
         for it in self.items:

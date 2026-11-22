@@ -107,6 +107,14 @@ real MVA data and mirrored in the test fixtures:
    once *any* student submits, so it must not be used for "has this student done
    it". `get_assignments()` fetches with `include[]=submission` and
    `models.own_submission_done()` reads the student's own `submission` instead.
+4. **Module `state` and `position` don't say which week is current.** A module stays
+   `started` until the student finishes every item, so old weeks with one unfinished
+   task look current, and the subject courses list the newest week first. Module
+   names carry the week's date, written many ways (`"(w/c 16th November)"`,
+   `"(Mon 16th Nov 2026)"`, `"Monday October 5 2026"`, sometimes with typos), so
+   `get_current_module()` picks the latest such date on or before today
+   (`models.parse_week_start`) and only falls back to state/position when no name
+   has one (the non-subject courses like "Induction Hub").
 
 ## Tests
 

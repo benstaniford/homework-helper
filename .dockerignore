@@ -1,0 +1,14 @@
+.git
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.env
+mva/capture
+mva/.pw-profile
+mva/.pw-session
+mva/tests
+mva/tools
+mva/examples
+homework/tests

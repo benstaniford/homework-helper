@@ -84,3 +84,81 @@ def test_materials_for_homework(api):
     # Every returned material carries a usable link or page slug.
     for m in materials:
         assert m.html_url or m.page_url or m.url
+
+
+def test_current_module_uses_week_commencing_not_state(mock_rsps, monkeypatch):
+    """An old week with an unfinished task stays 'started'; the w/c date must win."""
+    from datetime import datetime, timezone
+
+    import responses
+
+    from mva_canvas import api as api_mod
+    from mva_canvas import MvaCanvas
+    from tests.conftest import API, BASE_URL, TOKEN
+
+    monkeypatch.setattr(api_mod, "now_utc", lambda: datetime(2026, 11, 22, 12, tzinfo=timezone.utc))
+    # Newest week listed first, so the old week has the highest position.
+    modules = [
+        {"id": 3, "name": "WEEKS 11-12 - Genetics (w/c 30th November)", "position": 1, "state": "locked"},
+        {"id": 2, "name": "WEEKS 9-10 - Osmosis practical (w/c 16th November)", "position": 2, "state": "started"},
+        {"id": 1, "name": "WEEKS 1-2 - Viruses (w/c 7th Sept)", "position": 3, "state": "started"},
+    ]
+    mock_rsps.add(responses.GET, f"{API}/courses/9/modules", json=modules, status=200)
+    mock_rsps.add(responses.GET, f"{API}/courses/9/modules/2", json=modules[1], status=200)
+
+    mod = MvaCanvas(token=TOKEN, base_url=BASE_URL).get_current_module(9)
+    assert mod.id == 2
+
+
+def test_parse_week_start():
+    from datetime import date
+
+    from mva_canvas.models import parse_week_start as p
+
+    today = date(2026, 11, 22)
+    assert p("Osmosis (w/c 16th November)", today) == date(2026, 11, 16)
+    assert p("Viruses (w/c 7th Sept)", today) == date(2026, 9, 7)
+    assert p("Revision W/C 4 Jan", today) == date(2027, 1, 4)
+    assert p("Week 3 w/c 21/09", today) == date(2026, 9, 21)
+    assert p("Week 3 w/c 21.09.26", today) == date(2026, 9, 21)
+    assert p("Week 1&2: Decimal Numbers", today) is None
+    assert p("WEEKS 1-2 - Marking 3 Marks", today) is None
+    assert p("Course Introduction", today) is None
+
+
+def test_parse_week_start_variants():
+    from datetime import date
+
+    from mva_canvas.models import parse_week_start as p
+
+    today = date(2026, 11, 22)
+    for name in ["W.C. 16th November", "WC 16 Nov", "w/b 16th November", "week commencing 16th Nov",
+                 "Week Beginning: Monday 16th November", "w/c Monday 16/11", "w/c 16th of November"]:
+        assert p(name, today) == date(2026, 11, 16), name
+
+
+def test_parse_week_start_real_module_names():
+    """Module names as the MVA subject courses actually write them (Nov 2026)."""
+    from datetime import date
+
+    from mva_canvas.models import parse_week_start as p
+
+    today = date(2026, 11, 22)
+    cases = {
+        "WEEKS 9-10 - The mole and ASSESSMENT  (Mon 16th Nov 2026)": date(2026, 11, 16),
+        "MODULE 5: WEEKS 9-10: REVISION AND IN-CLASS SUBMIT (16th Nov)": date(2026, 11, 16),
+        "WEEKS 9-10  How to write an analytical literature essay + first timed assessment "
+        "(Monday 16 November, 2026)": date(2026, 11, 16),
+        "WEEKS 5-6 - AN INSPECTOR CALLS - Act 1 (Monday October 5 2026)": date(2026, 10, 5),
+        "Weeks 7-8 (Mon 19th Nov) Hazardous Environments (Mon 2 Nov 2026)": date(2026, 11, 2),
+        "MODULE 5 - WEEKS 9-10 The methods of Nazi control- 16th Nov ": date(2026, 11, 16),
+        "Week 9&10: Indices, Rearranging & Progress Check  (16 Nov 2026)": date(2026, 11, 16),
+        "Monday 7th September, Weeks 1-2, MODULE 1- Creation, Stewardship": date(2026, 9, 7),
+        "Weeks 9-10: Life After Death and the Purpose of Life - 16th November": date(2026, 11, 16),
+        "WEEKS 5-6 - Biological molecules and enzymes  - (5th October 2025)": date(2026, 10, 5),
+        "WEEKS 1-2 - INTRODUCTION & GODS (7th Sept)": date(2026, 9, 7),
+        "Weeks 1-6 UNIT 1 : Understanding Mental Health": None,
+        "Year 10 catch up subject topics": None,
+    }
+    for name, want in cases.items():
+        assert p(name, today) == want, name
