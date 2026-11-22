@@ -172,6 +172,17 @@ class ModuleItem:
         req = self.raw.get("completion_requirement") or {}
         return bool(req) and not req.get("completed", False)
 
+    @property
+    def has_requirement(self) -> bool:
+        """True when Canvas shows a tick/circle for this item in the module view."""
+        return bool(self.raw.get("completion_requirement"))
+
+    @property
+    def is_done(self) -> bool:
+        """True when this item's completion requirement is ticked off."""
+        req = self.raw.get("completion_requirement") or {}
+        return bool(req.get("completed", False))
+
 
 _MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july",
                 "august", "september", "october", "november", "december"]

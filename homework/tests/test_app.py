@@ -51,6 +51,7 @@ def make_fake():
     now = now_utc()
     assignments = [
         _assignment(1, "Late essay", due=now - timedelta(days=2)),
+        _assignment(10, "Ancient essay", due=now - timedelta(days=15)),
         _assignment(2, "Soon worksheet", due=now + timedelta(days=2)),
         _assignment(3, "Later project", due=now + timedelta(days=20)),
         _assignment(4, "Build task", due=None),
@@ -92,6 +93,68 @@ def test_build_report_lists_unfinished_module_pages():
     rep = homework_data.build_report(fake)
     assert [i.title for i in rep.this_week_tasks] == ["Build task", "PREPARE: Revision"]
     assert rep.this_week_tasks[1].html_url == "https://canvas.example/items/2"
+
+
+def test_stage_for():
+    s = homework_data.stage_for
+    assert s("PREPARE: Revision (45 minutes)") == "Prepare"
+    assert s("Prepare: Newspaper Articles") == "Prepare"
+    assert s("SUBMIT 2: Analyse a metope (40 mins)") == "Submit"
+    assert s("BUILD AND DEVELOP: Short and Long Term Impacts") == "Build"
+    assert s("BUILD- Osmosis graph drawing (30 MINS)") == "Build"
+    assert s("EXTENSION: Deepen Your Understanding") == "Extend"
+    assert s("Confidence Checker", "Confidence Checker End of Unit") == "Other"
+    assert s("Personalised periodic table", "EXTEND 💠") == "Extend"
+    assert s("Osmosis worksheet", "LIVE LESSON 1  💻") == "Live lesson"
+    assert s("Before This Module I Can", None) == "Start"
+    assert s("START HERE: Download/ print the module key sheet", "WEEK A") == "Start"
+    assert s("CHECK: Before starting this module I can... (5 mins)") == "Start"
+
+
+def test_this_week_grouped_by_course_and_stage():
+    fake = make_fake()
+    fake.module.items = [
+        ModuleItem(id=20, module_id=10, title="LIVE LESSON 1", type="SubHeader"),
+        ModuleItem(id=21, module_id=10, title="Build task", type="Assignment", content_id=4),
+        ModuleItem(id=22, module_id=10, title="FOCUS 🔷", type="SubHeader"),
+        ModuleItem(id=23, module_id=10, title="PREPARE: Revision", type="Page", html_url="u",
+                   raw={"completion_requirement": {"type": "must_mark_done", "completed": False}}),
+    ]
+    rep = homework_data.build_report(fake)
+    assert [g.course_name for g in rep.this_week] == ["Maths"]
+    maths = rep.this_week[0]
+    assert maths.module_name == "Week 12"
+    assert maths.count == 3
+    assert [(s.name, [i.title for i in s.items]) for s in maths.stages] == [
+        ("Prepare", ["PREPARE: Revision"]),
+        ("Build", ["Build task"]),  # title prefix beats the LIVE LESSON heading
+        ("Other", ["Soon worksheet"]),
+    ]
+
+
+def test_this_week_shows_done_items_ticked():
+    fake = make_fake()
+    fake.assignments.append(_assignment(8, "SHARE: Done share", submitted=True))
+    fake.assignments.append(_assignment(9, "BUILD: Marked done"))
+    done = {"type": "must_view", "completed": True}
+    fake.module.items = [
+        ModuleItem(id=30, module_id=10, title="PREPARE: Experiments", type="Page", html_url="u",
+                   raw={"completion_requirement": done}),
+        ModuleItem(id=31, module_id=10, title="PREPARE: Revision", type="Page", html_url="u",
+                   raw={"completion_requirement": {"type": "must_mark_done", "completed": False}}),
+        ModuleItem(id=32, module_id=10, title="SHARE: Done share", type="Assignment", content_id=8),
+        ModuleItem(id=33, module_id=10, title="BUILD: Marked done", type="Assignment", content_id=9,
+                   raw={"completion_requirement": {"type": "must_mark_done", "completed": True}}),
+        ModuleItem(id=34, module_id=10, title="Learning objectives", type="Page", html_url="u"),
+    ]
+    rep = homework_data.build_report(fake)
+    stages = {s.name: [(i.title, i.done) for i in s.items] for s in rep.this_week[0].stages}
+    # outstanding first, then done; reference pages with no tick are left out
+    assert stages["Prepare"] == [("PREPARE: Revision", False), ("PREPARE: Experiments", True)]
+    assert stages["Share"] == [("SHARE: Done share", True)]
+    assert stages["Build"] == [("BUILD: Marked done", True)]  # Canvas tick counts, not just submission
+    assert rep.this_week[0].count == 2  # PREPARE: Revision + Soon worksheet
+    assert "PREPARE: Experiments" not in [i.title for i in rep.this_week_tasks]
 
 
 def test_build_report_skips_failing_course():

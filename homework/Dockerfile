@@ -25,13 +25,16 @@ WORKDIR /app
 
 COPY --from=builder /root/.local /usr/local
 
-COPY homework/app.py homework/homework_data.py homework/gunicorn.conf.py ./
+COPY homework/app.py homework/homework_data.py homework/gunicorn.conf.py \
+     homework/tutor.py homework/mcp_server.py homework/web_tools.py homework/claude_broker_client.py ./
 COPY homework/templates/ templates/
+COPY homework/tutor_profile/ tutor_profile/
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
-RUN adduser --disabled-password --gecos '' appuser && \
+# uid 1000 = the claude-broker user on the host: its socket folder is private to that user.
+RUN adduser --disabled-password --gecos '' --uid 1000 appuser && \
     chown -R appuser:appuser /app
 
 USER appuser

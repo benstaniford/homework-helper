@@ -1,6 +1,7 @@
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask import Flask, Response, render_template, jsonify, request, session, redirect, url_for, stream_with_context
 import base64
 import hashlib
+import json
 import logging
 import os
 from datetime import timedelta
@@ -11,6 +12,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from mva_canvas.errors import CanvasAuthError, CanvasError
 from homework_data import SessionCache
+from tutor import Tutor, TutorError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +34,11 @@ app.config.update(
 _fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()).digest()))
 
 cache = SessionCache()
+
+# The homework helper chat. It's on when the claude-broker folder is mounted at
+# BROKER_DIR (see README). tutor.start() serves its tools: gunicorn calls it after
+# forking (gunicorn.conf.py), and the dev server calls it below.
+tutor = Tutor(lambda: cache)
 
 logger.info(f"Homework app v{APP_VERSION} initialized")
 
@@ -112,6 +119,7 @@ def logout():
     username = session.get('username')
     if username:
         cache.forget(username)
+        tutor.chats.forget_user(username)
     session.clear()
     return redirect(url_for('login'))
 
@@ -133,7 +141,45 @@ def index():
         return render_template('index.html', report=None, error='Could not load homework from MVA. Try refreshing.'), 502
     if request.args.get('refresh'):
         return redirect(url_for('index'))
-    return render_template('index.html', report=report, error=None)
+    return render_template('index.html', report=report, error=None, tutor_enabled=tutor.enabled)
+
+
+@app.route('/api/ask', methods=['POST'])
+def ask():
+    """Ask the homework helper about an item. Streams NDJSON events:
+    {"chat_id"}, then {"status"} / {"delta"} / {"reset"}, then {"done", "resources"} or {"error"}."""
+    creds = current_credentials()
+    if creds is None:
+        return jsonify({'error': 'Please sign in again.'}), 401
+    # JSON only: a cross-site form can't send it, so this also guards against CSRF.
+    if not request.is_json:
+        return jsonify({'error': 'Expected JSON'}), 415
+    if not tutor.enabled:
+        return jsonify({'error': "The homework helper isn't switched on."}), 503
+    body = request.get_json(silent=True) or {}
+    question = str(body.get('question') or '')
+    username, password = creds
+    try:
+        chat = tutor.chats.get(str(body.get('chat_id') or ''), username) if body.get('chat_id') else None
+        if chat is None:
+            if not body.get('item_key'):
+                return jsonify({'error': 'That chat has expired. Close it and press Ask again.'}), 404
+            chat = tutor.open_chat(username, password, str(body['item_key']))
+    except TutorError as e:
+        return jsonify({'error': str(e)}), e.status
+    except CanvasAuthError:
+        return jsonify({'error': 'Your MVA login has stopped working. Please sign in again.'}), 401
+    except (CanvasError, OSError) as e:
+        logger.warning("Opening a chat failed: %s", e)
+        return jsonify({'error': 'Could not load homework from MVA. Try again.'}), 502
+
+    def events():
+        yield json.dumps({'chat_id': chat.id}) + '\n'
+        for event in tutor.ask(chat, question):
+            yield json.dumps(event) + '\n'
+
+    return Response(stream_with_context(events()), mimetype='application/x-ndjson',
+                    headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
 
 
 @app.route('/health')
@@ -144,4 +190,5 @@ def health_check():
 
 if __name__ == '__main__':
     # For development only - use gunicorn in production
+    tutor.start()
     app.run(host='0.0.0.0', port=5000, debug=False)

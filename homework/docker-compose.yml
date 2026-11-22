@@ -8,8 +8,15 @@ services:
     ports:
       - "${HOST_PORT:-5050}:5000"
     restart: unless-stopped
+    # The homework helper talks to claude-broker on the host through this folder
+    # (see README). Run `claude-broker client add homework` first, or Docker creates
+    # the folder as root and the helper stays off.
+    user: "1000:1000"
+    volumes:
+      - /run/user/1000/claude-broker/homework:/run/claude-broker
     env_file:
       - .env
     environment:
       - FLASK_ENV=production
       - TZ=${TZ:-Europe/London}
+      - BROKER_DIR=/run/claude-broker

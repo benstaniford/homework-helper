@@ -244,6 +244,27 @@ class MvaCanvas:
         except CanvasNotFoundError:
             return None
 
+    # -- content (for reading a task or material in full) ---------------
+
+    def get_assignment(self, course_id: int, assignment_id: int) -> Assignment:
+        return Assignment.from_api(self.client.get(f"/courses/{course_id}/assignments/{assignment_id}"))
+
+    def get_page(self, course_id: int, page_url: str) -> dict:
+        """A wiki page: ``title`` and ``body`` (HTML), among others."""
+        return self.client.get(f"/courses/{course_id}/pages/{page_url}")
+
+    def get_discussion(self, course_id: int, topic_id: int) -> dict:
+        """A discussion topic: ``title`` and ``message`` (HTML), among others."""
+        return self.client.get(f"/courses/{course_id}/discussion_topics/{topic_id}")
+
+    def get_file(self, file_id: int) -> dict:
+        """File metadata: ``display_name``, ``content-type``, ``size`` and a download ``url``."""
+        return self.client.get(f"/files/{file_id}")
+
+    def download(self, url: str, max_bytes: int = 5_000_000) -> bytes:
+        """Download a file (e.g. a file's ``url``) with the Canvas session, up to max_bytes."""
+        return self.client.download(url, max_bytes=max_bytes)
+
     def find_module_for_assignment(self, course_id: int, assignment_id: int) -> Optional[Module]:
         """Find the weekly module that contains a given assignment."""
         for m in self.get_modules(course_id, with_items=True):

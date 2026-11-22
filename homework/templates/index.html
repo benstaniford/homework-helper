@@ -81,6 +81,25 @@
         details.overdue .count { background: #dc3545; }
         details.upcoming .count { background: #6c757d; }
         .section-body { padding: 0 1rem 1rem; }
+        details details { margin-bottom: 0.6rem; border-left-width: 4px; }
+        details details summary { font-size: 1rem; padding: 0.6rem 0.8rem; }
+        details details details summary { font-size: 0.92rem; padding: 0.45rem 0.8rem; }
+        .group-body { padding: 0 0.8rem 0.4rem; }
+        .group-name { display: flex; flex-direction: column; }
+        .module { font-weight: normal; color: #777; font-size: 0.82rem; margin-top: 0.15rem; }
+        details.stage { border-left-color: #b9c3f5; }
+        details.stage-start { border-left-color: #95a5a6; }
+        details.stage-focus, details.stage-prepare, details.stage-share { border-left-color: #4a90e2; }
+        details.stage-live-lesson, details.stage-build { border-left-color: #8e44ad; }
+        details.stage-submit { border-left-color: #e67e22; }
+        details.stage-develop, details.stage-recap { border-left-color: #f05a28; }
+        details.stage-extend { border-left-color: #16a085; }
+        details.stage .count { background: #9aa5d9; }
+        li.done .title a, li.done .title { color: #999; font-weight: normal; }
+        li.done .title a { text-decoration: line-through; }
+        li.done .due { color: #aaa; }
+        .tick { color: #28a745; font-weight: bold; }
+        .all-done { color: #28a745; font-size: 0.85rem; font-weight: normal; }
         h3 {
             font-size: 0.95rem;
             text-transform: uppercase;
@@ -103,6 +122,7 @@
         .course { color: #777; font-size: 0.88rem; margin-top: 0.15rem; }
         .due { white-space: nowrap; color: #555; font-size: 0.92rem; }
         details.overdue .due { color: #dc3545; font-weight: 600; }
+        .note { color: #999; font-size: 0.82rem; margin-top: 0.5rem; }
         .empty { color: #888; font-style: italic; padding: 0.4rem 0; }
         .notice {
             background: #fff3cd;
@@ -120,6 +140,58 @@
             padding: 0.75rem;
             margin-bottom: 1rem;
         }
+
+        /* --- homework helper --- */
+        .btn-ask {
+            font: inherit; font-size: 0.8rem; cursor: pointer;
+            color: #2b4fd8; background: #eef1fd; border: 1px solid #c9d2f7;
+            border-radius: 999px; padding: 0.15rem 0.65rem; margin-left: 0.4rem;
+            vertical-align: middle; white-space: nowrap;
+        }
+        .btn-ask:hover { background: #2b4fd8; color: white; border-color: #2b4fd8; }
+        li.asking { background: #f4f6ff; }
+        #tutor {
+            position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 100vw;
+            background: white; box-shadow: -4px 0 18px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; z-index: 50;
+            transform: translateX(105%); transition: transform 0.25s ease;
+        }
+        #tutor.open { transform: none; }
+        body.tutor-open { padding-right: calc(380px + 1.5rem); }
+        .tutor-head {
+            display: flex; align-items: flex-start; gap: 0.5rem;
+            padding: 0.9rem 1rem; border-bottom: 1px solid #eee; background: #667eea; color: white;
+        }
+        .tutor-head .t-label { font-size: 0.75rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tutor-head .t-title { font-weight: bold; margin-top: 0.15rem; }
+        .tutor-head button {
+            margin-left: auto; background: none; border: none; color: white;
+            font-size: 1.4rem; line-height: 1; cursor: pointer;
+        }
+        .tutor-msgs { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+        .msg { padding: 0.55rem 0.8rem; border-radius: 12px; max-width: 88%; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .msg.me { align-self: flex-end; background: #2b4fd8; color: white; border-bottom-right-radius: 4px; }
+        .msg.bot { align-self: flex-start; background: #f1f2f6; border-bottom-left-radius: 4px; }
+        .msg.err { align-self: stretch; max-width: none; background: #f8d7da; color: #721c24; font-size: 0.9rem; }
+        .msg.hint { align-self: stretch; max-width: none; background: none; color: #888; font-size: 0.88rem; padding: 0; }
+        .res { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+        .res a {
+            font-size: 0.82rem; text-decoration: none; color: #2b4fd8; background: white;
+            border: 1px solid #c9d2f7; border-radius: 999px; padding: 0.15rem 0.6rem;
+        }
+        .tutor-status { min-height: 1.2rem; padding: 0 1rem 0.3rem; color: #888; font-size: 0.82rem; font-style: italic; }
+        .tutor-form { display: flex; gap: 0.5rem; padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; }
+        .tutor-form textarea {
+            flex: 1; resize: none; font: inherit; font-size: 0.95rem; padding: 0.5rem 0.6rem;
+            border: 1px solid #ccc; border-radius: 8px; height: 2.6rem;
+        }
+        .tutor-form button {
+            font: inherit; cursor: pointer; border: none; border-radius: 8px;
+            background: #667eea; color: white; padding: 0 1rem;
+        }
+        .tutor-form button:disabled { background: #b8c0e8; cursor: default; }
+        @media (max-width: 1100px) { body.tutor-open { padding-right: 1.5rem; } }
+        @media (max-width: 600px) { #tutor { width: 100vw; } }
         @media (max-width: 600px) {
             body { padding: 0.5rem; }
             .container { padding: 1rem; }
@@ -128,17 +200,18 @@
     </style>
 </head>
 <body>
-{% macro item_list(items, show_module=False) %}
+{% macro item_list(items, show_module=False, show_course=True) %}
     <ul class="items">
     {% for it in items %}
-        <li>
+        <li{% if it.done %} class="done"{% endif %}>
             <div>
-                <div class="title">
+                <div class="title">{% if it.done %}<span class="tick" title="Done">&#10003;</span> {% endif %}
                     {% if it.html_url %}<a href="{{ it.html_url }}" target="_blank" rel="noopener">{{ it.title }}</a>{% else %}{{ it.title }}{% endif %}
+                    {% if tutor_enabled and not it.done and it.key %}<button type="button" class="btn-ask" data-key="{{ it.key }}" data-title="{{ it.title }}" data-course="{{ it.course_name }}">Ask question</button>{% endif %}
                 </div>
-                <div class="course">{{ it.course_name }}{% if show_module and it.module_name %} &middot; {{ it.module_name }}{% endif %}</div>
+                {% if show_course %}<div class="course">{{ it.course_name }}{% if show_module and it.module_name %} &middot; {{ it.module_name }}{% endif %}</div>{% endif %}
             </div>
-            <div class="due">{{ it.due or "No due date" }}</div>
+            <div class="due">{{ it.due or ("" if not show_course else "No due date") }}</div>
         </li>
     {% endfor %}
     </ul>
@@ -167,10 +240,24 @@
             <details class="this-week" open>
                 <summary>This week <span class="count">{{ report.this_week_due | length + report.this_week_tasks | length }}</span></summary>
                 <div class="section-body">
-                    <h3>Due in the next {{ report.days }} days</h3>
-                    {% if report.this_week_due %}{{ item_list(report.this_week_due) }}{% else %}<div class="empty">Nothing due 🎉</div>{% endif %}
-                    <h3>This week's tasks (no due date)</h3>
-                    {% if report.this_week_tasks %}{{ item_list(report.this_week_tasks, show_module=True) }}{% else %}<div class="empty">Nothing here 🎉</div>{% endif %}
+                    {% for course in report.this_week %}
+                    <details class="course-group">
+                        <summary>
+                            <span class="group-name">{{ course.course_name }}{% if course.module_name %}<span class="module">{{ course.module_name }}</span>{% endif %}</span>
+                            {% if course.count %}<span class="count">{{ course.count }}</span>{% else %}<span class="all-done">&#10003; all done</span>{% endif %}
+                        </summary>
+                        <div class="group-body">
+                            {% for stage in course.stages %}
+                            <details class="stage stage-{{ stage.name | lower | replace(' ', '-') }}" open>
+                                <summary>{{ stage.name }} {% if stage.todo %}<span class="count">{{ stage.todo }}</span>{% else %}<span class="all-done">&#10003; all done</span>{% endif %}</summary>
+                                <div class="group-body">{{ item_list(stage.items, show_course=False) }}</div>
+                            </details>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% else %}
+                    <div class="empty">Nothing this week 🎉</div>
+                    {% endfor %}
                 </div>
             </details>
 
@@ -178,6 +265,7 @@
                 <summary>Overdue <span class="count">{{ report.overdue | length }}</span></summary>
                 <div class="section-body">
                     {% if report.overdue %}{{ item_list(report.overdue) }}{% else %}<div class="empty">Nothing overdue 🎉</div>{% endif %}
+                    <div class="note">Work more than {{ report.overdue_days }} days overdue isn't shown.</div>
                 </div>
             </details>
 
@@ -189,5 +277,161 @@
             </details>
         {% endif %}
     </div>
+    {% if tutor_enabled and report %}
+    <aside id="tutor" aria-label="Homework helper" aria-hidden="true">
+        <div class="tutor-head">
+            <div>
+                <div class="t-label">Homework helper</div>
+                <div class="t-title" id="tutor-title"></div>
+            </div>
+            <button type="button" id="tutor-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="tutor-msgs" id="tutor-msgs"></div>
+        <div class="tutor-status" id="tutor-status"></div>
+        <form class="tutor-form" id="tutor-form">
+            <textarea id="tutor-input" placeholder="What are you stuck on?" maxlength="1000" rows="1"></textarea>
+            <button type="submit" id="tutor-send">Send</button>
+        </form>
+    </aside>
+    <script>
+    (function () {
+        const panel = document.getElementById('tutor');
+        const msgs = document.getElementById('tutor-msgs');
+        const status = document.getElementById('tutor-status');
+        const input = document.getElementById('tutor-input');
+        const send = document.getElementById('tutor-send');
+        let chat = null;  // {key, title, id, li}
+        let busy = false;
+
+        function add(cls, text) {
+            const div = document.createElement('div');
+            div.className = 'msg ' + cls;
+            div.textContent = text;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+            return div;
+        }
+
+        function open(btn) {
+            if (chat && chat.li) chat.li.classList.remove('asking');
+            chat = {key: btn.dataset.key, title: btn.dataset.title, id: null, li: btn.closest('li')};
+            if (chat.li) chat.li.classList.add('asking');
+            document.getElementById('tutor-title').textContent = btn.dataset.title;
+            msgs.innerHTML = '';
+            add('hint', "Ask about " + btn.dataset.course + ": what the task means, where to start, " +
+                "or an idea you're stuck on. I'll help you work it out, but I won't do it for you!");
+            status.textContent = '';
+            panel.classList.add('open');
+            panel.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('tutor-open');
+            input.focus();
+        }
+
+        function close() {
+            panel.classList.remove('open');
+            panel.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('tutor-open');
+            if (chat && chat.li) chat.li.classList.remove('asking');
+            chat = null;
+        }
+
+        function setBusy(b) {
+            busy = b;
+            send.disabled = b;
+            input.disabled = b;
+            if (!b) input.focus();
+        }
+
+        function resources(bubble, list) {
+            if (!list || !list.length) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'res';
+            for (const r of list) {
+                const a = document.createElement('a');
+                a.href = r.url; a.target = '_blank'; a.rel = 'noopener';
+                a.textContent = r.title;
+                wrap.appendChild(a);
+            }
+            bubble.appendChild(wrap);
+        }
+
+        async function ask(question) {
+            const current = chat;
+            add('me', question);
+            setBusy(true);
+            status.textContent = 'Thinking…';
+            let bubble = null, text = '';
+            const show = () => {
+                if (!bubble) bubble = add('bot', '');
+                bubble.textContent = text;
+                msgs.scrollTop = msgs.scrollHeight;
+            };
+            try {
+                const res = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question, chat_id: current.id, item_key: current.key}),
+                });
+                if (!res.ok || !res.body) {
+                    let err = 'Something went wrong. Try again.';
+                    try { err = (await res.json()).error || err; } catch (e) {}
+                    if (res.status === 401) { window.location = '/login'; return; }
+                    throw new Error(err);
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = '';
+                for (;;) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, {stream: true});
+                    let nl;
+                    while ((nl = buf.indexOf('\n')) >= 0) {
+                        const line = buf.slice(0, nl).trim();
+                        buf = buf.slice(nl + 1);
+                        if (!line || chat !== current) continue;
+                        const ev = JSON.parse(line);
+                        if (ev.chat_id) current.id = ev.chat_id;
+                        if (ev.status) status.textContent = ev.status;
+                        if (ev.reset) { text = ''; if (bubble) bubble.textContent = ''; }
+                        if (ev.delta) { text += ev.delta; status.textContent = ''; show(); }
+                        if (ev.done) { show(); resources(bubble, ev.resources); }
+                        if (ev.error) add('err', ev.error);
+                    }
+                }
+            } catch (e) {
+                if (chat === current) add('err', e.message || 'Lost connection. Try again.');
+            } finally {
+                if (chat === current) { status.textContent = ''; setBusy(false); }
+                else { busy = false; send.disabled = false; input.disabled = false; }
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-ask');
+            if (!btn) return;
+            e.preventDefault();
+            if (busy && chat) return;
+            if (chat && chat.key === btn.dataset.key && panel.classList.contains('open')) { input.focus(); return; }
+            open(btn);
+        });
+        document.getElementById('tutor-close').addEventListener('click', close);
+        document.getElementById('tutor-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const q = input.value.trim();
+            if (!q || busy || !chat) return;
+            input.value = '';
+            ask(q);
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('tutor-form').requestSubmit();
+            }
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel.classList.contains('open')) close(); });
+    })();
+    </script>
+    {% endif %}
 </body>
 </html>

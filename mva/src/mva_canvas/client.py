@@ -92,6 +92,20 @@ class CanvasClient:
         self._check(resp)
         return resp.json()
 
+    def download(self, url: str, max_bytes: int = 5_000_000) -> bytes:
+        """GET raw bytes (a file download), stopping after max_bytes."""
+        resp = self._session.get(self._abs(url), timeout=self.timeout, stream=True)
+        try:
+            self._check(resp)
+            buf = bytearray()
+            for chunk in resp.iter_content(64 * 1024):
+                buf += chunk
+                if len(buf) >= max_bytes:
+                    break
+            return bytes(buf[:max_bytes])
+        finally:
+            resp.close()
+
     def get_paginated(self, path: str, params: Optional[dict] = None) -> list:
         """GET a list resource, following Link rel="next" until exhausted."""
         return list(self.iter_paginated(path, params))

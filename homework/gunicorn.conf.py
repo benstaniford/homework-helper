@@ -4,17 +4,17 @@
 bind = "0.0.0.0:5000"
 backlog = 2048
 
-# Few workers so each keeps a warm Canvas session; threads handle concurrency.
+# One worker: it keeps the warm Canvas sessions and the helper's chats in memory,
+# and it alone serves the helper's tools on the broker's tools.sock. Threads handle
+# concurrency (helper answers stream for up to a couple of minutes).
 # Loading a report makes several Canvas calls, so allow a generous timeout.
-workers = 2
+workers = 1
 worker_class = "gthread"
-threads = 4
+threads = 8
 timeout = 120
 keepalive = 2
 
-# Restart workers after this many requests, to help prevent memory leaks
-max_requests = 1000
-max_requests_jitter = 100
+# No max_requests: recycling the single worker would drop every open helper chat.
 
 # Logging
 accesslog = "-"
@@ -32,3 +32,9 @@ limit_request_field_size = 8190
 
 # Performance
 preload_app = True
+
+
+def post_fork(server, worker):
+    # Threads don't survive fork, so the helper's tool server starts in the worker.
+    import app
+    app.tutor.start()
